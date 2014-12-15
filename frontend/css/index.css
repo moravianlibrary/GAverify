@@ -1,0 +1,121 @@
+html, body {
+    height: 100%;
+    margin: 0px;
+    padding: 0px;
+}
+#map-canvas {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    bottom: 0px;
+    right: 270px;
+}
+#toolbar {
+    position: absolute;
+    width: 270px;
+    top: 0px;
+    bottom: 0px;
+    right: 0px;
+    box-shadow: -2px 0px 4px;
+    background-color: #F2F2F2;
+    overflow-y: scroll;
+}
+#info {
+    height: 300px;
+    background-color: white;
+    margin: 10px;
+    padding: 4px;
+    border: 1px solid #D4D4D4;
+    overflow-y: scroll;
+    word-wrap: break-word;
+}
+#nominatim {
+  padding: 10px;
+}
+#menu-top {
+  padding: 10px;
+}
+#menu-bottom {
+  padding: 10px;
+}
+.ol-create-bbox {
+    top: 3em;
+    right: .5em;
+}
+.ol-create-bbox .ol-has-tooltip:focus [role=tooltip],.ol-create-bbox .ol-has-tooltip:hover [role=tooltip] {
+    right:2.2em;
+    left:auto;
+    border-radius:4px 0 0 4px;
+    border-left-width:3px;
+    border-right-width:0
+}
+.ol-create-bbox.ol-activated button {
+    background-color: rgba(245, 184, 0, 0.5);
+}
+
+.ol-create-bbox.ol-disabled button {
+    background-color: rgba(179, 179, 179, 0.5);
+}
+.olControlLayerSwitcher {
+    top: 45px !important;
+}
+#bboxDialogGraphic {
+    position: absolute;
+    left: 50px;
+    top: 110px;
+    right: 50px;
+    bottom: 110px;
+    border: 1px solid #3366FF;
+}
+#bboxDialogLT {
+    position: absolute;
+    left: 10px;
+    top:50px;
+}
+#bboxDialogRB {
+    position: absolute;
+    right: 10px;
+    bottom:50px;
+}
+#loading-overlay {
+    display: none;
+    position: absolute;
+    left: 0px;
+    right: 0px;
+    top: 0px;
+    bottom: 0px;
+    z-index: 100000;
+    background-image:url('/img/ajax-loader.gif');
+    background-repeat: no-repeat;
+    background-position:center;
+    background-color: white;
+    /* This works in IE 8 & 9 too */
+    /* ... but also 5, 6, 7 */
+    filter: alpha(opacity=70);
+
+    /* Older than Firefox 0.9 */
+    -moz-opacity:0.7;
+
+    /* Safari 1.x (pre WebKit!) */
+    -khtml-opacity: 0.7;
+
+    /* Modern!
+    /* Firefox 0.9+, Safari 2?, Chrome any?
+    /* Opera 9+, IE 9+ */
+    opacity: 0.7;
+}
+#nominatim .goog-menuitem {
+    white-space: normal !important;
+    padding: 4px 4px 4px 4px;
+}
+#nominatim .goog-menu {
+  height: 200px;
+  position: static !important;
+  overflow-y: scroll;
+  margin-top: 5px;
+}
+#nominatim .goog-loading {
+  background-image:url('/img/ajax-loader-small.gif');
+  background-repeat: no-repeat;
+  background-position: right;
+}

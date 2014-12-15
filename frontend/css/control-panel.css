@@ -1,0 +1,35 @@
+.olControlPanel {
+    right: 0px;
+}
+.create-bbox {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    cursor: pointer;
+    height: 22px;
+    width: 22px;
+    background: rgba(255, 255, 255, 0.4);
+    border-radius: 4px 4px 4px 4px;
+    text-align: center;
+    padding: 3px;
+}
+.create-bbox-content {
+    height: 22px;
+    width: 22px;
+    color: #06c;
+    background: rgb(0, 60, 136);
+    background: rgba(0, 60, 136, 0.5);
+    border-radius: 4px 4px 4px 4px;
+    font-family: serif;
+    font-weight: bold;
+    line-height: 22px;
+}
+.create-bbox-content:hover {
+    background: #130085;
+    background: rgba(0, 60, 136, 0.7);
+}
+.olControlDrawFeatureItemActive .create-bbox-content {
+    color: rgb(245, 184, 0);
+    background: #FFE38F;
+    background: rgba(245, 184, 0, 0.5);
+}
