@@ -1,3 +1,6 @@
 [submodule "frontend/javascript/vendor/closure-library"]
 	path = frontend/javascript/vendor/closure-library
 	url = https://github.com/google/closure-library
+[submodule "frontend/javascript/vendor/openlayers"]
+	path = frontend/javascript/vendor/openlayers
+	url = https://github.com/moravianlibrary/openlayers

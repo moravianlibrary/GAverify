@@ -110,6 +110,7 @@ cz.mzk.authorities.verif.Map = function(element) {
           var feature = new OpenLayers.Feature.Vector(geom);
           this_.nominatimLayerZoomOut_.removeAllFeatures();
           this_.nominatimLayerZoomOut_.addFeatures([feature]);
+          this_.modifyControl_.selectFeature(e.feature);
         }
       }
     }
@@ -214,26 +215,30 @@ cz.mzk.authorities.verif.Map = function(element) {
   this.mapProjection_ = new OpenLayers.Projection('EPSG:900913');
   /**
    * @private
-   * @type {!OpenLayers.Control.ModifyFeature}
+   * @type {!OpenLayers.Control.ModifyRectangle}
    */
-  this.modifyControl_ = new OpenLayers.Control.ModifyFeature(
-    this.nominatimLayer_);
+  this.modifyControl_ = new OpenLayers.Control.ModifyRectangle(
+    this.nominatimLayer_, {
+      standalone: true,
+      clickout: false
+    }
+  );
   /**
    * @private
    * @type {!OpenLayers.Control.DrawFeature}
    */
   this.createBBoxControl_ = new OpenLayers.Control.DrawFeature(
-      this.nominatimLayer_,
-      OpenLayers.Handler.RegularPolygon,
-      {
-          handlerOptions: {
-              sides: 4,
-              irregular: true
-          },
-          type: OpenLayers.Control.TYPE_TOGGLE,
-          buttonClass: 'create-bbox',
-          buttonText: '&#x25a1;'
-      }
+    this.nominatimLayer_,
+    OpenLayers.Handler.RegularPolygon,
+    {
+      handlerOptions: {
+        sides: 4,
+        irregular: true
+      },
+      type: OpenLayers.Control.TYPE_TOGGLE,
+      buttonClass: 'create-bbox',
+      buttonText: '&#x25a1;'
+    }
   );
   /**
    * @private

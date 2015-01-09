@@ -208,20 +208,25 @@ OpenLayers.Control.prototype.deactivate = function() {}
 /**
  * @constructor
  * @param {OpenLayers.Layer.Vector} layer
- * @param {Object=} options
+ * @param {{clickout: boolean, standalone: boolean}=} options
  * @extends {OpenLayers.Control}
  */
-OpenLayers.Control.ModifyFeature = function(layer, options) {}
+OpenLayers.Control.ModifyRectangle = function(layer, options) {}
 
 /**
  * @type {OpenLayers.Feature.Vector}
  */
-OpenLayers.Control.ModifyFeature.prototype.feature;
+OpenLayers.Control.ModifyRectangle.prototype.feature;
 
 /**
  * @param {OpenLayers.Feature.Vector} feature
  */
-OpenLayers.Control.ModifyFeature.prototype.unselectFeature = function(feature) {}
+OpenLayers.Control.ModifyRectangle.prototype.selectFeature = function(feature) {}
+
+/**
+ * @param {OpenLayers.Feature.Vector} feature
+ */
+OpenLayers.Control.ModifyRectangle.prototype.unselectFeature = function(feature) {}
 
 /**
  * @constructor
