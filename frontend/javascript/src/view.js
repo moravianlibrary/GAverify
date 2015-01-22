@@ -2,6 +2,7 @@ goog.provide('cz.mzk.authorities.verif.View');
 goog.provide('cz.mzk.authorities.verif.View.EventType');
 
 goog.require('goog.asserts');
+goog.require('goog.array');
 goog.require('goog.events');
 goog.require('goog.events.EventType');
 goog.require('goog.events.EventTarget');
@@ -11,29 +12,36 @@ goog.require('cz.mzk.authorities.verif.Map');
 goog.require('cz.mzk.authorities.verif.Authority');
 goog.require('cz.mzk.authorities.verif.NominatimControl');
 
+goog.require('cz.mzk.ui.Select');
+goog.require('cz.mzk.ui.Label');
+
 goog.require('goog.ui.menuBar');
 goog.require('goog.ui.Component.EventType');
 goog.require('goog.ui.Container.Orientation');
 goog.require('goog.ui.CheckBoxMenuItem');
 goog.require('goog.ui.Select');
 goog.require('goog.ui.MenuItem');
+goog.require('goog.ui.MenuSeparator');
 goog.require('goog.ui.LabelInput');
 goog.require('goog.ui.Button');
+goog.require('goog.ui.ToggleButton');
 goog.require('goog.ui.Dialog');
 goog.require('goog.ui.Dialog.ButtonSet');
+goog.require('goog.ui.FlatButtonRenderer');
 
 /**
  * Class representing View
  * @constructor
  * @param {Element} mapElement
+ * @param {Element} mapLayerSwitcherElement
  * @param {Element} menuTopElement
- * @param {Element} menuBottomElement
  * @param {Element} infoElement
  * @param {Element} nominatimElement
  * @param {Element} loadingElement
  * @extends {goog.events.EventTarget}
  */
-cz.mzk.authorities.verif.View = function(mapElement, menuTopElement, menuBottomElement, infoElement, nominatimElement, loadingElement) {
+cz.mzk.authorities.verif.View = function(mapElement, mapLayerSwitcherElement,
+    menuTopElement, infoElement, nominatimElement, loadingElement) {
   goog.events.EventTarget.call(this);
   /**
    * @private
@@ -45,18 +53,13 @@ cz.mzk.authorities.verif.View = function(mapElement, menuTopElement, menuBottomE
    * @type {cz.mzk.authorities.verif.Map}
    */
   this.map_ = new cz.mzk.authorities.verif.Map(mapElement);
+  this.layerSelect_ = this.createLayerSelect_();
   /**
    * @private
    * @type {goog.ui.Container}
    */
   this.menuTop_ = goog.ui.menuBar.create();
   this.menuTop_.setOrientation(goog.ui.Container.Orientation.VERTICAL);
-  /**
-   * @private
-   * @type {goog.ui.Container}
-   */
-  this.menuBottom_ = goog.ui.menuBar.create();
-  this.menuBottom_.setOrientation(goog.ui.Container.Orientation.VERTICAL);
   /**
    * @private
    * @type {Element}
@@ -75,15 +78,15 @@ cz.mzk.authorities.verif.View = function(mapElement, menuTopElement, menuBottomE
   /**
    * @type {goog.ui.MenuItem}
    */
-  var selectItemCorrect = new goog.ui.MenuItem('Korektní');
+  var selectItemCorrect = new goog.ui.MenuItem('Shoda');
   /**
    * @type {goog.ui.MenuItem}
    */
-  var selectItemOutside = new goog.ui.MenuItem('Mimo');
+  var selectItemOutside = new goog.ui.MenuItem('Neshoda');
   /**
    * @type {goog.ui.MenuItem}
    */
-  var selectItemNotfound = new goog.ui.MenuItem('Nenalezení');
+  var selectItemNotfound = new goog.ui.MenuItem('Nenalezeno');
   selectItemCorrect.setValue(cz.mzk.authorities.verif.AuthorityManager.CategoryType.CORRECT);
   selectItemOutside.setValue(cz.mzk.authorities.verif.AuthorityManager.CategoryType.OUTSIDE);
   selectItemNotfound.setValue(cz.mzk.authorities.verif.AuthorityManager.CategoryType.NOTFOUND);
@@ -91,7 +94,7 @@ cz.mzk.authorities.verif.View = function(mapElement, menuTopElement, menuBottomE
    * @private
    * @type {goog.ui.Select}
    */
-  this.categorySelect_ = new goog.ui.Select('Vyberte kategorii');
+  this.categorySelect_ = new cz.mzk.ui.Select('Míra shody');
   this.categorySelect_.addItem(selectItemCorrect);
   this.categorySelect_.addItem(selectItemOutside);
   this.categorySelect_.addItem(selectItemNotfound);
@@ -99,19 +102,34 @@ cz.mzk.authorities.verif.View = function(mapElement, menuTopElement, menuBottomE
    * @private
    * @type {goog.ui.Select}
    */
-  this.levelSelect_ = new goog.ui.Select('Vyberte level');
+  this.levelSelect_ = new cz.mzk.ui.Select('Náročnost zpracování');
+  this.levelSelect_.addItem(new goog.ui.MenuItem('Základní'));
+  this.levelSelect_.addItem(new goog.ui.MenuItem('Obtížná'));
+  this.levelSelect_.addItem(new goog.ui.MenuItem('Velmi obtížná'));
   this.levelSelect_.setEnabled(false);
   /**
-   * If it is set to true, the LEVEL_CHANGED events won't be fired.
    * @private
-   * @type {boolean}
+   * @type {cz.mzk.ui.Label}
    */
-  this.silentLevelSelect_ = true;
+  this.buttonsLabel_ = new cz.mzk.ui.Label('Navigace');
   /**
    * @private
-   * @type {Array.<goog.ui.MenuItem>}
+   * @type {goog.ui.MenuItem}
    */
-  this.levelSelectItems_ = [];
+  this.moveToOriginalButton_ = new goog.ui.MenuItem('Původní souřadnice');
+  this.moveToOriginalButton_.setEnabled(false);
+  /**
+   * @private
+   * @type {goog.ui.MenuItem}
+   */
+  this.moveToNominatimButton_ = new goog.ui.MenuItem('Nominatim souřadnice');
+  this.moveToNominatimButton_.setEnabled(false);
+  /**
+   * @private
+   * @type {goog.ui.MenuItem}
+   */
+  this.moveToBothButton_ = new goog.ui.MenuItem('Obojí');
+  this.moveToBothButton_.setEnabled(false);
   /**
    * @private
    * @type {goog.ui.CheckBoxMenuItem}
@@ -121,59 +139,74 @@ cz.mzk.authorities.verif.View = function(mapElement, menuTopElement, menuBottomE
   this.polygonCheckbox_.setChecked(true);
   /**
    * @private
-   * @type {goog.ui.MenuItem}
+   * @type {goog.ui.Button}
    */
-  this.moveToOriginalButton_ = new goog.ui.MenuItem('Přejít na původní souřadnice');
-  this.moveToOriginalButton_.setEnabled(false);
+  this.verifiedButton_ = new goog.ui.Button('Uložit výběr',
+      goog.ui.FlatButtonRenderer.getInstance());
+  this.verifiedButton_.setEnabled(false);
   /**
    * @private
-   * @type {goog.ui.MenuItem}
+   * @type {goog.ui.Button}
    */
-  this.moveToNominatimButton_ = new goog.ui.MenuItem('Přejít na nominatim souřadnice');
-  this.moveToNominatimButton_.setEnabled(false);
+  this.skipButton_ = new goog.ui.Button('Obtížná',
+      goog.ui.FlatButtonRenderer.getInstance());
+  this.skipButton_.setEnabled(false);
   /**
    * @private
-   * @type {goog.ui.MenuItem}
+   * @type {goog.ui.Button}
    */
-  this.moveToBothButton_ = new goog.ui.MenuItem('Přejít na obojí');
-  this.moveToBothButton_.setEnabled(false);
+  this.createBBoxButton_ = this.createCreateBBoxButton_();
+  this.createBBoxButton_.setEnabled(false);
+  /**
+   * @private
+   * @type {goog.ui.Button}
+   */
+  this.undoButton_ = this.createHistoryButton_('undo');
+  this.undoButton_.setEnabled(false);
+  /**
+   * @private
+   * @type {goog.ui.Button}
+   */
+  this.redoButton_ = this.createHistoryButton_('redo');
+  this.redoButton_.setEnabled(false);
   /**
    * @private
    * @type {cz.mzk.authorities.verif.NominatimControl}
    */
   this.nominatimControl_ = new cz.mzk.authorities.verif.NominatimControl();
   this.nominatimControl_.setEnabled(false);
-  /**
-   * @private
-   * @type {goog.ui.Button}
-   */
-  this.verifiedButton_ = new goog.ui.Button('Správně');
-  this.verifiedButton_.setEnabled(false);
-  /**
-   * @private
-   * @type {goog.ui.Button}
-   */
-  this.skipButton_ = new goog.ui.Button('Přeskočit');
-  this.skipButton_.setEnabled(false);
   this.menuTop_.addChild(this.categorySelect_, true);
   this.menuTop_.addChild(this.levelSelect_, true);
-  this.menuTop_.addChild(this.polygonCheckbox_, true);
+  this.menuTop_.addChild(this.buttonsLabel_, true);
   this.menuTop_.addChild(this.moveToOriginalButton_, true);
   this.menuTop_.addChild(this.moveToNominatimButton_, true);
   this.menuTop_.addChild(this.moveToBothButton_, true);
-  this.menuBottom_.addChild(this.verifiedButton_, true);
-  this.menuBottom_.addChild(this.skipButton_, true);
+  this.menuTop_.addChild(new goog.ui.MenuSeparator, true);
+  this.menuTop_.addChild(this.polygonCheckbox_, true);
+  this.menuTop_.addChild(this.verifiedButton_, true);
+  this.menuTop_.addChild(this.skipButton_, true);
+  this.menuTop_.addChild(this.createBBoxButton_, true);
+  this.menuTop_.addChild(this.undoButton_, true);
+  this.menuTop_.addChild(this.redoButton_, true);
+
+  this.layerSelect_.render(mapLayerSwitcherElement);
   this.menuTop_.render(menuTopElement);
-  this.menuBottom_.render(menuBottomElement);
   this.nominatimControl_.render(this.nominatimElement_);
   /**
    * @type {cz.mzk.authorities.verif.View}
    */
   var this_ = this;
+  goog.events.listen(this.layerSelect_, goog.events.EventType.CHANGE, function(e) {
+    this_.map_.setBaseLayer(this.getValue());
+  });
   goog.events.listen(this.categorySelect_, goog.events.EventType.CHANGE, function(e) {
+    this_.polygonCheckbox_.setEnabled(false);
+    this_.nominatimControl_.setEnabled(false);
+    this_.createBBoxButton_.setEnabled(false);
     this_.polygonCheckbox_.setEnabled(false);
     this_.moveToOriginalButton_.setEnabled(false);
     this_.moveToNominatimButton_.setEnabled(false);
+    this_.moveToBothButton_.setEnabled(false);
     this_.info_.innerHTML = '';
     this_.verifiedButton_.setEnabled(false);
     this_.skipButton_.setEnabled(false);
@@ -182,9 +215,10 @@ cz.mzk.authorities.verif.View = function(mapElement, menuTopElement, menuBottomE
       type: cz.mzk.authorities.verif.View.EventType.CATEGORY_CHANGED
     });
   });
-  goog.events.listen(this.map_, 'sketchcomplete', function(e) {
+  goog.events.listen(this.map_,
+      cz.mzk.authorities.verif.Map.EventType.BBOX_CHANGED, function(e) {
     /** @type {OpenLayers.Bounds} */
-    var bounds = e['bounds'];
+    var bounds = e.bounds;
     var array = bounds.toArray();
     this_.authority_.setNominatimWest(array[0]);
     this_.authority_.setNominatimSouth(array[1]);
@@ -192,13 +226,12 @@ cz.mzk.authorities.verif.View = function(mapElement, menuTopElement, menuBottomE
     this_.authority_.setNominatimNorth(array[3]);
     this_.setControls_(this_.authority_);
     this_.verifiedButton_.setEnabled(true);
+    this_.createBBoxButton_.setChecked(false);
   });
   goog.events.listen(this.levelSelect_, goog.events.EventType.CHANGE, function(e) {
-    if (!this_.silentLevelSelect_) {
-      this_.dispatchEvent({
-        type: cz.mzk.authorities.verif.View.EventType.LEVEL_CHANGED
-      });
-    }
+    this_.dispatchEvent({
+      type: cz.mzk.authorities.verif.View.EventType.LEVEL_CHANGED
+    });
   });
   goog.events.listen(this.moveToOriginalButton_, goog.ui.Component.EventType.ACTION, function(e) {
     this_.map_.moveToOriginal(this_.authority_);
@@ -218,6 +251,19 @@ cz.mzk.authorities.verif.View = function(mapElement, menuTopElement, menuBottomE
     this_.dispatchEvent({
       type: cz.mzk.authorities.verif.View.EventType.SKIP_ACTION
     });
+  });
+  goog.events.listen(this.createBBoxButton_, goog.ui.Component.EventType.ACTION, function(e) {
+    this_.map_.setActivateCreateBBox(this.isChecked());
+  });
+  goog.events.listen(this.undoButton_, goog.ui.Component.EventType.ACTION, function(e) {
+    this_.map_.undo();
+  });
+  goog.events.listen(this.redoButton_, goog.ui.Component.EventType.ACTION, function(e) {
+    this_.map_.redo();
+  });
+  goog.events.listen(this.map_, cz.mzk.authorities.verif.Map.EventType.HISTORY_CHANGED, function(e) {
+    this_.undoButton_.setEnabled(this.hasUndo());
+    this_.redoButton_.setEnabled(this.hasRedo());
   });
   goog.events.listen(this.nominatimControl_, cz.mzk.authorities.verif.NominatimEvent.NOMINATIM_ACTION, function(e) {
     var nominatimData = e.target['nominatim'];
@@ -241,7 +287,7 @@ cz.mzk.authorities.verif.View = function(mapElement, menuTopElement, menuBottomE
       this_.authority_.setNominatimPolygon(null);
     }
     this_.setControls_(this_.authority_);
-    this_.map_.showAuthority(this_.authority_);
+    this_.map_.showAuthority(this_.authority_, false);
   });
 };
 
@@ -269,7 +315,7 @@ cz.mzk.authorities.verif.View.prototype.getSelectedCategory = function() {
  * @return {!number}
  */
 cz.mzk.authorities.verif.View.prototype.getSelectedLevel = function() {
-  return parseInt(this.levelSelect_.getValue(), 10);
+  return /** @type {number} */ (this.levelSelect_.getValue());
 };
 
 /**
@@ -282,7 +328,7 @@ cz.mzk.authorities.verif.View.prototype.showAuthority = function(authority) {
   this.map_.setVisibleNominatimPolygon(this.polygonCheckbox_.isChecked());
   this.showInfo_(authority);
   this.setControls_(authority);
-  this.nominatimControl_.setQuery(authority.getAddress());
+  this.nominatimControl_.setQuery(authority.getInfo()['151']['a']);
 };
 
 /**
@@ -309,6 +355,7 @@ cz.mzk.authorities.verif.View.prototype.clear = function() {
   this.polygonCheckbox_.setEnabled(false);
   this.moveToOriginalButton_.setEnabled(false);
   this.moveToNominatimButton_.setEnabled(false);
+  this.moveToBothButton_.setEnabled(false);
   this.info_.innerHTML = '';
   this.nominatimControl_.setEnabled(false);
   this.verifiedButton_.setEnabled(false);
@@ -327,10 +374,7 @@ cz.mzk.authorities.verif.View.prototype.unselectCategory = function() {
  * Clear items of levelSelect.
  */
 cz.mzk.authorities.verif.View.prototype.clearLevels = function() {
-  for (var i = 0; i < this.levelSelectItems_.length; i++) {
-    this.levelSelect_.removeItem(this.levelSelectItems_[i]);
-  }
-  this.levelSelectItems_ = [];
+  this.levelSelect_.setSelectedItem(null);
 };
 
 /**
@@ -338,16 +382,18 @@ cz.mzk.authorities.verif.View.prototype.clearLevels = function() {
  * @param {!Array.<number>} levels
  */
 cz.mzk.authorities.verif.View.prototype.setLevels = function(levels) {
-  this.silentLevelSelect_ = true;
-  var level = this.levelSelect_.getValue();
-  this.clearLevels();
-  for (var i = 0; i < levels.length; i++) {
-    var menuItem = new goog.ui.MenuItem(levels[i].toString());
-    this.levelSelect_.addItem(menuItem);
-    this.levelSelectItems_.push(menuItem);
-  }
-  this.levelSelect_.setValue(level);
-  this.silentLevelSelect_ = false;
+  goog.array.sort(levels);
+  var selectedItem = this.levelSelect_.getSelectedItem();
+  var item1 = this.levelSelect_.getItemAt(0);
+  var item2 = this.levelSelect_.getItemAt(1);
+  var item3 = this.levelSelect_.getItemAt(2);
+  item1.setValue(1);
+  item2.setValue(2);
+  item3.setValue(goog.array.peek(levels));
+  item1.setEnabled(goog.array.contains(levels, 1) || item1 == selectedItem);
+  item2.setEnabled(goog.array.contains(levels, 2) || item2 == selectedItem);
+  item3.setEnabled(goog.array.some(levels, function(e, i, a) {return e >= 3}) ||
+      item3 == selectedItem);
 };
 
 /**
@@ -355,6 +401,9 @@ cz.mzk.authorities.verif.View.prototype.setLevels = function(levels) {
  * @param {boolean} val
  */
 cz.mzk.authorities.verif.View.prototype.setLevelSelectEnabled = function(val) {
+  if (!val) {
+    this.levelSelect_.setSelectedItem(null);
+  }
   this.levelSelect_.setEnabled(val);
 };
 
@@ -384,22 +433,20 @@ cz.mzk.authorities.verif.View.prototype.setLoading = function(val) {
  */
 cz.mzk.authorities.verif.View.prototype.showInfo_ = function(authority) {
   this.info_.innerHTML = '<strong>Informace o autoritě</strong><br/>';
-  this.info_.innerHTML += '<i>ID: </i>' + authority.getId() + '<br/>';
-  this.info_.innerHTML += '<i>Adresa: </i>' + authority.getAddress() + '<br/>';
-  this.info_.innerHTML += '<i>Typ: </i>' + authority.getType() + '<br/>';
-  if (authority.hasOriginalCoors()) {
-    this.info_.innerHTML += '<strong>Původní souřadnice:</strong><br/>';
-    this.info_.innerHTML += '&nbsp;&nbsp;<i>W: </i>' + authority.getOriginalWest() + '°<br/>';
-    this.info_.innerHTML += '&nbsp;&nbsp;<i>E: </i>' + authority.getOriginalEast() + '°<br/>';
-    this.info_.innerHTML += '&nbsp;&nbsp;<i>N: </i>' + authority.getOriginalNorth() + '°<br/>';
-    this.info_.innerHTML += '&nbsp;&nbsp;<i>S: </i>' + authority.getOriginalSouth() + '°<br/>';
-  }
-  if (authority.hasNominatimCoors()) {
-    this.info_.innerHTML += '<strong>Souřadnice nalezené nominatimem:</strong><br/>';
-    this.info_.innerHTML += '&nbsp;&nbsp;<i>W: </i>' + authority.getNominatimWest() + '°<br/>';
-    this.info_.innerHTML += '&nbsp;&nbsp;<i>E: </i>' + authority.getNominatimEast() + '°<br/>';
-    this.info_.innerHTML += '&nbsp;&nbsp;<i>N: </i>' + authority.getNominatimNorth() + '°<br/>';
-    this.info_.innerHTML += '&nbsp;&nbsp;<i>S: </i>' + authority.getNominatimSouth() + '°<br/>';
+
+  var authInfo = authority.getInfo();
+  for (var marcCode in authInfo) {
+    var field = authInfo[marcCode];
+    this.info_.innerHTML += '<strong>' + marcCode + '</strong>';
+    if (typeof(field) == 'string') {
+      this.info_.innerHTML += ':&nbsp;' + field + '<br/>';
+    } else if (typeof(field) == 'object') {
+      this.info_.innerHTML += '<br/>';
+      for (var fieldCode in field) {
+        this.info_.innerHTML += '&nbsp;&nbsp<strong>' + fieldCode + '</strong>';
+        this.info_.innerHTML += ':&nbsp;' + field[fieldCode] + '<br/>';
+      }
+    }
   }
 };
 
@@ -432,7 +479,64 @@ cz.mzk.authorities.verif.View.prototype.setControls_ = function(authority) {
   }
   this.nominatimControl_.setEnabled(true);
   this.skipButton_.setEnabled(true);
+  this.createBBoxButton_.setEnabled(true);
 };
+
+/**
+ * Creates LayerSwitcher
+ * @return {goog.ui.Select}
+ */
+cz.mzk.authorities.verif.View.prototype.createLayerSelect_ = function() {
+  var select = new goog.ui.Select();
+  select.setRenderMenuAsSibling(true);
+  var layers = this.map_.getMapLayers();
+  for (var i = 0; i < layers.length; i++) {
+    var item = new goog.ui.MenuItem(layers[i].name);
+    item.setValue(layers[i]);
+    select.addItem(item);
+  }
+  select.setSelectedIndex(0);
+  return select;
+}
+
+/**
+ * Creates CreateBBoxButton
+ * @return {goog.ui.Button}
+ */
+cz.mzk.authorities.verif.View.prototype.createCreateBBoxButton_ = function() {
+  var content = goog.dom.createElement('div');
+  var img = goog.dom.createDom('img', {'src': '/img/createbbox.png'});
+  var span = goog.dom.createDom('span', {}, 'Označit oblast výběrem');
+  goog.dom.appendChild(content, img);
+  goog.dom.appendChild(content, span);
+  var button = new goog.ui.ToggleButton(content,
+      /** @type {goog.ui.FlatButtonRenderer} */
+      (goog.ui.ControlRenderer.getCustomRenderer(
+        goog.ui.FlatButtonRenderer, 'goog-image-button')));
+  return button;
+}
+
+/**
+ * Creates History Button
+ * @param {string} type
+ * @return {goog.ui.Button}
+ */
+cz.mzk.authorities.verif.View.prototype.createHistoryButton_ = function(type) {
+  var content = goog.dom.createElement('div');
+  var img;
+  if (type == 'undo') {
+    img = goog.dom.createDom('img', {'src': '/img/undo.png'});
+  } else if (type == 'redo') {
+    img = goog.dom.createDom('img', {'src': '/img/redo.png'});
+  }
+  goog.dom.appendChild(content, /** @type {Node} */ (img));
+  var button = new goog.ui.Button(content,
+      /** @type {goog.ui.FlatButtonRenderer} */
+      (goog.ui.ControlRenderer.getCustomRenderer(
+        goog.ui.FlatButtonRenderer, 'goog-image-button')));
+  button.addClassName('goog-image-button-' + type);
+  return button;
+}
 
 /**
  * @enum {!string}

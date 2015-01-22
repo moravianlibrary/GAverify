@@ -1,6 +1,8 @@
 goog.provide('cz.mzk.authorities.verif.Map');
+goog.provide('cz.mzk.authorities.verif.Map.EventType');
 
 goog.require('cz.mzk.authorities.verif.Authority');
+goog.require('cz.mzk.ActionHistory');
 goog.require('goog.events.EventTarget');
 goog.require('goog.asserts');
 goog.require('goog.object');
@@ -16,6 +18,17 @@ cz.mzk.authorities.verif.Map = function(element) {
   goog.events.EventTarget.call(this);
   /** @type {cz.mzk.authorities.verif.Map} */
   var this_ = this;
+  /**
+   * @private
+   * @type {cz.mzk.ActionHistory}
+   */
+  this.actionHistory_ = new cz.mzk.ActionHistory();
+  /**
+   * Flag determines if the history will be recorded
+   * @private
+   * @type {boolean}
+   */
+  this.recordHistory_ = true;
   /**
    * @private
    * @type {!OpenLayers.Layer.Vector}
@@ -95,22 +108,29 @@ cz.mzk.authorities.verif.Map = function(element) {
           var feature = e.feature;
           /** @type {OpenLayers.Geometry} */
           var geometry = feature.geometry;
-          var clone = goog.object.unsafeClone(geometry.getBounds());
-          goog.asserts.assert(clone instanceof OpenLayers.Bounds);
-          /** @type {OpenLayers.Bounds} */
-          var bounds = clone;
+
+          // Copy, which will be send to server
+          var bounds = /** @type {OpenLayers.Bounds} */
+              (goog.object.unsafeClone(geometry.getBounds()));
+
           bounds.transform(this_.mapProjection_, this_.gpsProjection_);
-          e['bounds'] = bounds;
-          this_.dispatchEvent(e);
+          var event = new cz.mzk.authorities.verif.Map.BBoxChangedEvent(bounds);
+          this_.dispatchEvent(event);
           return true;
         },
         featureadded: function(e) {
-          var point = e.feature.geometry.getBounds().getCenterLonLat();
-          var geom = new OpenLayers.Geometry.Point(point.lon, point.lat);
-          var feature = new OpenLayers.Feature.Vector(geom);
+          var geometry = e.feature.geometry;
+          var point = geometry.getBounds().getCenterLonLat();
+          var pointGeom = new OpenLayers.Geometry.Point(point.lon, point.lat);
+          var pointFeat = new OpenLayers.Feature.Vector(pointGeom);
+
           this_.nominatimLayerZoomOut_.removeAllFeatures();
-          this_.nominatimLayerZoomOut_.addFeatures([feature]);
+          this_.nominatimLayerZoomOut_.addFeatures([pointFeat]);
           this_.modifyControl_.selectFeature(e.feature);
+          this_.addActionToHistory_(e.feature);
+        },
+        featuremodified: function(e) {
+          this_.addActionToHistory_(e.feature);
         }
       }
     }
@@ -240,28 +260,16 @@ cz.mzk.authorities.verif.Map = function(element) {
       buttonText: '&#x25a1;'
     }
   );
-  /**
-   * @private
-   * @type {!OpenLayers.Control.Panel}
-   */
-  this.panelControl_ = new OpenLayers.Control.Panel({
-    createControlMarkup: function(control) {
-      var element = document.createElement('div');
-      var content = document.createElement('div');
-      element.className = control.buttonClass;
-      content.innerHTML = control.buttonText;
-      content.className = control.buttonClass + '-content';
-      element.appendChild(content);
-      return element;
-    },
-    autoActivate: false
-  });
-  this.panelControl_.addControls([this.createBBoxControl_]);
 
   this.map_.addControl(this.modifyControl_);
   this.map_.addControl(this.createBBoxControl_);
-  this.map_.addControl(this.panelControl_);
-  this.map_.addControl(new OpenLayers.Control.LayerSwitcher());
+
+  goog.events.listen(this.actionHistory_, goog.ui.Component.EventType.CHANGE,
+      function(e) {
+        this_.dispatchEvent({
+          type: cz.mzk.authorities.verif.Map.EventType.HISTORY_CHANGED
+        });
+      });
 };
 
 goog.inherits(cz.mzk.authorities.verif.Map, goog.events.EventTarget);
@@ -273,14 +281,15 @@ cz.mzk.authorities.verif.Map.prototype.updateSize = function() {
 /**
  * Shows Authority on the map.
  * @param {cz.mzk.authorities.verif.Authority} authority
+ * @param {boolean=} clearHistory
  */
-cz.mzk.authorities.verif.Map.prototype.showAuthority = function(authority) {
-  this.clear();
+cz.mzk.authorities.verif.Map.prototype.showAuthority = function(authority,
+    clearHistory) {
+  this.clear(clearHistory);
   this.drawOriginal_(authority);
   this.drawNominatim_(authority);
   this.drawNominatimPolygon_(authority);
   this.addModifyInteraction_();
-  this.showPanelControl_();
   this.move_(authority);
   this.swapNominatimLayers_();
 };
@@ -299,14 +308,48 @@ cz.mzk.authorities.verif.Map.prototype.getBBox = function() {
 };
 
 /**
- * Clear the map.
+ * Returns list of map layers
+ * @return {Array.<OpenLayers.Layer>}
  */
-cz.mzk.authorities.verif.Map.prototype.clear = function() {
+cz.mzk.authorities.verif.Map.prototype.getMapLayers = function() {
+  return goog.array.filter(this.map_.layers, function(e, i, a) {
+    return e.displayInLayerSwitcher;
+  });
+}
+
+/**
+ * Specify one of the currently-loaded layers as the Map’s new base layer
+ * @param {OpenLayers.Layer} layer
+ */
+cz.mzk.authorities.verif.Map.prototype.setBaseLayer = function(layer) {
+  this.map_.setBaseLayer(layer);
+}
+
+/**
+ * Activates or deactivates CreateBBox control.
+ * @param {boolean} activate
+ */
+cz.mzk.authorities.verif.Map.prototype.setActivateCreateBBox =
+    function(activate) {
+  if (activate) {
+    this.createBBoxControl_.activate();
+  } else {
+    this.createBBoxControl_.deactivate();
+  }
+}
+
+/**
+ * Clear the map.
+ * @param {boolean=} clearHistory
+ */
+cz.mzk.authorities.verif.Map.prototype.clear = function(clearHistory) {
   this.removeModifyInteraction_();
-  this.hidePanelControl_();
   this.originalLayer_.removeAllFeatures();
   this.nominatimLayer_.removeAllFeatures();
   this.polygonLayer_.removeAllFeatures();
+  if (!goog.isDef(clearHistory) || clearHistory) {
+    this.actionHistory_.clear();
+  }
 };
 
 /**
@@ -387,6 +430,73 @@ cz.mzk.authorities.verif.Map.prototype.moveTo = function(authority) {
 cz.mzk.authorities.verif.Map.prototype.setVisibleNominatimPolygon = function(value) {
   this.polygonLayer_.setVisibility(value);
 };
+
+/**
+ * Reverts previous operation.
+ */
+cz.mzk.authorities.verif.Map.prototype.undo = function() {
+  this.recordHistory_ = false;
+  var feature = /** @type {OpenLayers.Feature.Vector} */
+      (this.actionHistory_.undo())
+  if (this.modifyControl_.feature) {
+    this.modifyControl_.unselectFeature(this.modifyControl_.feature);
+  }
+  this.nominatimLayer_.removeAllFeatures();
+  this.nominatimLayer_.addFeatures([feature]);
+  var bounds = /** @type {OpenLayers.Bounds} */
+      (goog.object.unsafeClone(feature.geometry.getBounds()));
+
+  bounds.transform(this.mapProjection_, this.gpsProjection_);
+  var event = new cz.mzk.authorities.verif.Map.BBoxChangedEvent(bounds);
+  this.dispatchEvent(event);
+  this.recordHistory_ = true;
+}
+
+/**
+ * Reverts reverted operation.
+ */
+cz.mzk.authorities.verif.Map.prototype.redo = function() {
+  this.recordHistory_ = false;
+  var feature = /** @type {OpenLayers.Feature.Vector} */
+      (this.actionHistory_.redo())
+  if (this.modifyControl_.feature) {
+    this.modifyControl_.unselectFeature(this.modifyControl_.feature);
+  }
+  this.nominatimLayer_.removeAllFeatures();
+  this.nominatimLayer_.addFeatures([feature]);
+  var bounds = /** @type {OpenLayers.Bounds} */
+      (goog.object.unsafeClone(feature.geometry.getBounds()));
+
+  bounds.transform(this.mapProjection_, this.gpsProjection_);
+  var event = new cz.mzk.authorities.verif.Map.BBoxChangedEvent(bounds);
+  this.dispatchEvent(event);
+  this.recordHistory_ = true;
+}
+
+/**
+ * @return {boolean}
+ */
+cz.mzk.authorities.verif.Map.prototype.hasUndo = function() {
+  return this.actionHistory_.hasUndo();
+}
+
+/**
+ * @return {boolean}
+ */
+cz.mzk.authorities.verif.Map.prototype.hasRedo = function() {
+  return this.actionHistory_.hasRedo();
+}
+
+/**
+ * Add action into the history.
+ * @param {OpenLayers.Feature.Vector} feature
+ */
+cz.mzk.authorities.verif.Map.prototype.addActionToHistory_ = function(
+      feature) {
+  if (this.recordHistory_) {
+    this.actionHistory_.addAction(feature);
+  }
+}
 
 /**
  * Draw nominatim bounding box or point on the map.
@@ -534,21 +644,6 @@ cz.mzk.authorities.verif.Map.prototype.removeModifyInteraction_ = function() {
  */
 cz.mzk.authorities.verif.Map.prototype.addModifyInteraction_ = function() {
   this.modifyControl_.activate();
-
-};
-
-/**
- * Hide control panel with control buttons.
- */
-cz.mzk.authorities.verif.Map.prototype.hidePanelControl_ = function() {
-  this.panelControl_.deactivate();
-};
-
-/**
- * Show control panel with control buttons.
- */
-cz.mzk.authorities.verif.Map.prototype.showPanelControl_ = function() {
-  this.panelControl_.activate();
 };
 
 /**
@@ -574,3 +669,27 @@ cz.mzk.authorities.verif.Map.prototype.swapNominatimLayers_ = function() {
     this.nominatimLayerZoomOut_.setVisibility(false);
   }
 };
+
+/**
+ * @param {OpenLayers.Bounds} bounds
+ * @constructor
+ * @extends {goog.events.Event}
+ */
+cz.mzk.authorities.verif.Map.BBoxChangedEvent = function(bounds) {
+  goog.events.Event.call(this,
+    cz.mzk.authorities.verif.Map.EventType.BBOX_CHANGED);
+  /**
+   * @type {OpenLayers.Bounds}
+   */
+  this.bounds = bounds;
+}
+
+goog.inherits(cz.mzk.authorities.verif.Map.BBoxChangedEvent, goog.events.Event);
+
+/**
+ * @enum {string}
+ */
+cz.mzk.authorities.verif.Map.EventType = {
+  HISTORY_CHANGED : 'history-changed',
+  BBOX_CHANGED : 'bbox-changed'
+}

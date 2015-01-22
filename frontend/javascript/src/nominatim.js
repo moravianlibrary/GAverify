@@ -58,13 +58,7 @@ goog.ui.ac.Nominatim = function(input, opt_parent, opt_url, opt_payload) {
   // Create a custom renderer that renders rich rows returned from server.
   var customRenderer = {};
   customRenderer.renderRow = function(row, token, node) {
-    node.innerHTML = row.data['display_name'];// + ' (' + row.data['type'] + ') [' +  row.data['place_id'] + '] ' + row.data['class'];
-    /* render:
-    goog.dom.appendChild(node, goog.dom.createTextNode(
-      row.data['display_name']));
-    goog.dom.appendChild(node, goog.dom.createDom("span", "ac-type",
-        goog.dom.createTextNode(row.data['type'])));
-    */
+    node.innerHTML = row.data['display_name'];
   };
 
   /**

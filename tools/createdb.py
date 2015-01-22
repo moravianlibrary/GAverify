@@ -11,8 +11,7 @@ from contextlib import closing
 table_schema = '''
     CREATE TABLE 'authorities' (
         'id' TEXT,
-        'type' TEXT,
-        'address' TEXT,
+        'info' TEXT,
         'original_west' REAL,
         'original_east' REAL,
         'original_north' REAL,
@@ -45,18 +44,16 @@ with open(args.input) as in_file, closing(sqlite3.connect(args.output)) as conn,
 
     for i, record in enumerate(marcReader):
         sys.stderr.write("Processing record {}\r".format(i))
-        record['151'] = record.get('151', {})
-        record['151']['a'] = record['151'].get('a', None)
         boundingbox = geotools.BoundingBox(record['034']) if '034' in record else None
 
         if boundingbox:
             cursor.execute(\
-                "INSERT INTO 'authorities' ('id', 'type', 'address', 'original_west', 'original_east', 'original_north', 'original_south') VALUES (?, ?, ?, ?, ?, ?, ?)",\
-                (record['001'], record['FMT'], record['151']['a'], boundingbox.west, boundingbox.east, boundingbox.north, boundingbox.south))
+                "INSERT INTO 'authorities' ('id', 'info', 'original_west', 'original_east', 'original_north', 'original_south') VALUES (?, ?, ?, ?, ?, ?)",\
+                (record['001'], json.dumps(record), boundingbox.west, boundingbox.east, boundingbox.north, boundingbox.south))
         else:
             cursor.execute(\
-                "INSERT INTO 'authorities' ('id', 'type', 'address') VALUES (?, ?, ?)",\
-                (record['001'], record['FMT'], record['151']['a']))
+                "INSERT INTO 'authorities' ('id', 'info') VALUES (?, ?)",\
+                (record['001'], json.dumps(record)))
 
     sys.stderr.write("\n")
     sys.stderr.write("Commiting transaction.\n")

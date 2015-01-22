@@ -1,0 +1,40 @@
+.goog-menu-select {
+  font-weight: bold;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 10pt;
+  color: #595959;
+  width: 100%;
+  border: 1px solid #c7c7c7;
+  padding-bottom: 10px;
+}
+.goog-menu-select-outer-box {
+  padding: 10px 0 10px 20px;
+  background-color: #FFFFFF;
+  width: 100%;
+}
+.goog-menu-select-items .goog-menuitem {
+  padding: 4px 0 4px 20px;
+  cursor: pointer;
+}
+.goog-menu-select-items .goog-menuitem.goog-menuitem-selected {
+  background-color: #e2ecce;
+}
+.goog-menu-select-items .goog-menuitem.goog-menuitem-highlight {
+  background-color: #e2ecce;
+  border: none;
+}
+.goog-menu-select-items .goog-menuitem-content {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 10pt;
+  color: #404040;
+}
+.goog-menu-select-disabled .goog-menu-select-items .goog-menuitem {
+  cursor: default;
+}
+.goog-menu-select-disabled .goog-menu-select-items .goog-menuitem-content {
+  color: #ccc;
+}
+.goog-menu-select-disabled .goog-menu-select-items .goog-menuitem.goog-menuitem-highlight {
+  background-color: inherit;
+  border: none;
+}

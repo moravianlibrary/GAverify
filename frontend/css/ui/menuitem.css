@@ -1,0 +1,22 @@
+.goog-menuitem {
+  padding: 4px 0 4px 20px;
+  cursor: pointer;
+}
+.goog-menuitem-highlight {
+  background-color: #e2ecce;
+  border: none;
+}
+.goog-menuitem-disabled {
+  cursor: default;
+}
+.goog-menuitem-content {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 10pt;
+  color: #404040;
+}
+.goog-menuseparator {
+  width: 100%;
+  height: 1px;
+  background-color: #c7c7c7;
+  margin: 10px 0 10px 0;
+}

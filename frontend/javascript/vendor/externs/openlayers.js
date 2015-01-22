@@ -11,6 +11,16 @@ var OpenLayers = {}
 OpenLayers.Map = function(options) {}
 
 /**
+ * @type {Array.<OpenLayers.Layer>}
+ */
+OpenLayers.Map.prototype.layers;
+
+/**
+ * @param {OpenLayers.Layer} layer
+ */
+OpenLayers.Map.prototype.setBaseLayer = function(layer) {}
+
+/**
  * @param {(OpenLayers.Bounds|Array.<number>)} bounds
  * @param {boolean=} closest
  */
@@ -55,6 +65,16 @@ OpenLayers.Map.prototype.updateSize = function() {}
 OpenLayers.Layer = function(name, options) {}
 
 /**
+ * @type {string}
+ */
+OpenLayers.Layer.prototype.name;
+
+/**
+ * @type {boolean}
+ */
+OpenLayers.Layer.prototype.displayInLayerSwitcher;
+
+/**
  * @param {boolean} visibility
  */
 OpenLayers.Layer.prototype.setVisibility = function(visibility) {}
@@ -70,7 +90,8 @@ OpenLayers.Layer.prototype.getExtent = function() {}
  * @param {{displayInLayerSwitcher: boolean,
             styleMap: OpenLayers.StyleMap,
  *          eventListeners: ({sketchcomplete: function(this:OpenLayers.Layer.Vector,OpenLayers.Feature.Vector):boolean,
-                              featureadded: function(this:OpenLayers.Layer.Vector,{feature: OpenLayers.Feature.Vector})}|undefined)}=} options
+                              featureadded: function(this:OpenLayers.Layer.Vector,{feature: OpenLayers.Feature.Vector}),
+                              featuremodified: function(this:OpenLayers.Layer.Vector,{feature: OpenLayers.Feature.Vector})}|undefined)}=} options
  * @extends {OpenLayers.Layer}
  */
 OpenLayers.Layer.Vector = function(name, options) {}
@@ -132,6 +153,11 @@ OpenLayers.Bounds.prototype.extendXY = function(x, y) {}
  * @return {Array.<number>}
  */
 OpenLayers.Bounds.prototype.toArray = function() {}
+
+/**
+ * @return {OpenLayers.Geometry.Polygon}
+ */
+OpenLayers.Bounds.prototype.toGeometry = function() {}
 
 /**
  * @param {OpenLayers.Projection} source
@@ -326,6 +352,11 @@ OpenLayers.LonLat.prototype.transform = function(source, dest) {}
  * @constructor
  */
 OpenLayers.Geometry = function() {}
+
+/**
+ * @return {OpenLayers.Geometry}
+ */
+OpenLayers.Geometry.prototype.clone = function() {}
 
 /**
  * @return {OpenLayers.Bounds}

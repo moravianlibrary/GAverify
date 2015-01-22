@@ -1,0 +1,28 @@
+.goog-image-button {
+  font-family: 'Open Sans', sans-serif;
+  font-size: 10pt;
+  color: #595959;
+  margin-left: 20px;
+  cursor: pointer;
+}
+.goog-image-button * {
+  vertical-align: middle;
+}
+.goog-image-button img {
+}
+.goog-image-button span {
+  padding-left: 10px;
+}
+.goog-image-button-hover {
+  background-color: #e2ecce;
+}
+.goog-image-button-checked {
+  background-color: #e2ecce;
+}
+.goog-image-button-disabled {
+  cursor: default;
+  color: #ccc;
+}
+.goog-image-button-disabled img {
+  opacity: 0.2;
+}

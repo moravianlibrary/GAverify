@@ -20,8 +20,8 @@ cz.mzk.authorities.verif.main = function() {
   var authorityManager = new cz.mzk.authorities.verif.AuthorityManager('http://devel.auth.verif.mzk.cz/backend');
   var view = new cz.mzk.authorities.verif.View(
       goog.dom.getElement('map-canvas'),
+      goog.dom.getElement('map-layer-switcher'),
       goog.dom.getElement('menu-top'),
-      goog.dom.getElement('menu-bottom'),
       goog.dom.getElement('info'),
       goog.dom.getElement('nominatim'),
       goog.dom.getElement('loading-overlay')
@@ -49,6 +49,9 @@ cz.mzk.authorities.verif.main = function() {
     }
   });
   goog.events.listen(view, cz.mzk.authorities.verif.View.EventType.LEVEL_CHANGED, function(e) {
+    if (!view.getSelectedLevel()) {
+      return;
+    }
     authorityManager.setLevel(view.getSelectedLevel());
     view.setLoading(true);
     authorityManager.getNext(false, function(code, authority, levels) {

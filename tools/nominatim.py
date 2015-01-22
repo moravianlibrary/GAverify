@@ -24,18 +24,21 @@ parser.add_argument('database', help='Sqlite database')
 args = parser.parse_args()
 
 with closing(sqlite3.connect(args.database)) as conn, closing(conn.cursor()) as read_cursor, closing(conn.cursor()) as write_cursor:
-    for row in read_cursor.execute('''SELECT `id`, `address` FROM `authorities`
-                                   WHERE `address` != '' AND `nominatim_west` IS NULL AND `nominatim_east` IS NULL
+    for row in read_cursor.execute('''SELECT `id`, `info` FROM `authorities`
+                                   WHERE `nominatim_west` IS NULL AND `nominatim_east` IS NULL
                                    AND `nominatim_north` IS NULL AND `nominatim_south` IS NULL'''):
         try:
-            id, address = row
+            id, info = row
+            address = json.loads(info).get('151', {}).get('a', None)
+            if not address:
+                continue
             sys.stderr.write("Processing row with id {}\r".format(id))
             sys.stderr.flush()
             nominatim_json = get_nominatim_json(address)
-            
+
             if nominatim_json:
                 boundingbox = geotools.BoundingBox(nominatim_json[0]['boundingbox'])
-                
+
                 if 'polygonpoints' in nominatim_json[0]:
                     write_cursor.execute("UPDATE `authorities` SET `nominatim_west` = ?, `nominatim_east` = ?, `nominatim_north` = ?, `nominatim_south` = ?, `nominatim_polygon` = ? WHERE `id` = ?",\
                                          (boundingbox.west, boundingbox.east, boundingbox.north, boundingbox.south, json.dumps(nominatim_json[0]['polygonpoints']) ,id))
@@ -47,4 +50,3 @@ with closing(sqlite3.connect(args.database)) as conn, closing(conn.cursor()) as 
             print("WARNING HTTPError id: {}".format(id))
         except:
             print("Error at record with id {}".format(id))
-            raise

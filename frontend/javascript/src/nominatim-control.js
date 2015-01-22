@@ -3,20 +3,28 @@ goog.provide('cz.mzk.authorities.verif.NominatimControl');
 goog.require('cz.mzk.authorities.verif.Authority');
 goog.require('cz.mzk.authorities.verif.NominatimEvent');
 goog.require('goog.ui.Control');
+goog.require('goog.ui.ControlRenderer');
 goog.require('goog.ui.LabelInput');
 goog.require('goog.ui.Button');
 goog.require('goog.ui.Menu');
 goog.require('goog.ui.MenuItem');
+goog.require('goog.ui.PopupMenu');
+goog.require('goog.ui.Component.EventType');
 goog.require('goog.ui.ac.Nominatim');
 goog.require('goog.asserts');
+goog.require('goog.events');
+goog.require('goog.events.KeyCodes');
 goog.require('goog.dom.classlist');
+goog.require('goog.positioning.Corner');
 
 /**
  * @constructor
  * @extends {goog.ui.Control}
  */
 cz.mzk.authorities.verif.NominatimControl = function() {
-  goog.ui.Control.call(this);
+  var renderer = goog.ui.ControlRenderer.getCustomRenderer(
+      goog.ui.ControlRenderer, 'goog-control-nominatim');
+  goog.ui.Control.call(this, undefined, renderer);
   var this_ = this;
   this.setFocused(true);
   this.setAllowTextSelection(true);
@@ -86,6 +94,18 @@ cz.mzk.authorities.verif.NominatimControl.prototype.setEnabled = function(enable
   }
 };
 
+/** @override */
+cz.mzk.authorities.verif.NominatimControl.prototype.performActionInternal =
+    function(e) {
+  if (e.type == 'key') {
+    var event = /** @type {goog.events.KeyEvent} */ (e);
+    if (event.keyCode == goog.events.KeyCodes.ENTER) {
+      this.searchSubmit_();
+    }
+  }
+  return true;
+}
+
 /**
  * @param {!string} query
  */
@@ -125,19 +145,16 @@ cz.mzk.authorities.verif.NominatimControl.prototype.searchSubmit_ = function() {
         if (data[i]['polygonpoints']) {
           item['nominatim']['polygon'] = this_.retypePolygon_(data[i]['polygonpoints']);
         }
+        item.handleContextMenu = function(e) {
+          e.preventDefault();
+          window.prompt('Skopírujte text stisknutím: Ctrl+C', this.getContent());
+        };
         goog.events.listen(item, goog.ui.Component.EventType.ACTION, function(e) {
           var event = new cz.mzk.authorities.verif.NominatimEvent(e.target['nominatim']);
           this.dispatchEvent(event);
         });
         this_.results_.addChild(item, true);
       }
-      /** type {?goog.ui.Control} */
-      /*var firstItem = this_.results_.getChildAt(0);
-      if (firstItem) {
-        this_.map_.showAuthority(firstItem['authority']);
-      } else {
-        this_.map_.clear();
-      }*/
       goog.dom.classlist.remove(this_.searchInput_.getElementStrict(), 'goog-loading');
     },
     function(error) {

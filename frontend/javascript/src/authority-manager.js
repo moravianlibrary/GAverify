@@ -103,8 +103,7 @@ cz.mzk.authorities.verif.AuthorityManager.prototype.getNext = function(skip, cal
     if (data['code'] == 'OK') {
       var authority = new cz.mzk.authorities.verif.Authority({
         id: data['id'],
-        address: data['address'],
-        type: data['type'],
+        info: goog.json.parse(data['info']),
         originalWest: data['original_west'],
         originalEast: data['original_east'],
         originalNorth: data['original_north'],
@@ -164,8 +163,7 @@ cz.mzk.authorities.verif.AuthorityManager.prototype.verify = function(
     if (data['code'] == 'OK') {
       var authority = new cz.mzk.authorities.verif.Authority({
         id: data['id'],
-        address: data['address'],
-        type: data['type'],
+        info: goog.json.parse(data['info']),
         originalWest: data['original_west'],
         originalEast: data['original_east'],
         originalNorth: data['original_north'],

@@ -46,7 +46,7 @@ class Database:
         self._filename = filename
         self._conn = None
         self._columns = "\
-            `id`, `type`, `address`, \
+            `id`, `info`, \
             `original_west`, `original_east`, `original_north`, `original_south`, \
             `nominatim_west`, `nominatim_east`, `nominatim_north`, `nominatim_south`, \
             `nominatim_polygon`\
@@ -180,18 +180,17 @@ def send_authority_response(start_response, params, levels):
         return send_response(start_response, {'code' : 'EOF'})
     result = {}
     result['id'] = params[0]
-    result['type'] = params[1]
-    result['address'] = params[2]
-    result['original_west'] = params[3]
-    result['original_east'] = params[4]
-    result['original_north'] = params[5]
-    result['original_south'] = params[6]
-    result['nominatim_west'] = params[7]
-    result['nominatim_east'] = params[8]
-    result['nominatim_north'] = params[9]
-    result['nominatim_south'] = params[10]
-    result['nominatim_polygon'] = retype_polygon(json.loads(params[11])) if params[11] else None
-    result['uuid'] = params[12]
+    result['info'] = params[1]
+    result['original_west'] = params[2]
+    result['original_east'] = params[3]
+    result['original_north'] = params[4]
+    result['original_south'] = params[5]
+    result['nominatim_west'] = params[6]
+    result['nominatim_east'] = params[7]
+    result['nominatim_north'] = params[8]
+    result['nominatim_south'] = params[9]
+    result['nominatim_polygon'] = retype_polygon(json.loads(params[10])) if params[10] else None
+    result['uuid'] = params[11]
     result['code'] = 'OK'
     result['levels'] = levels
 

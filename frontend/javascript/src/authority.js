@@ -2,8 +2,7 @@ goog.provide('cz.mzk.authorities.verif.Authority');
 
 /**
  * @typedef {{id: (string|undefined),
- *          type: (string|undefined),
- *          address: (string|undefined),
+ *          info: (Object|undefined),
  *          originalWest: (number|undefined),
  *          originalEast: (number|undefined),
  *          originalNorth: (number|undefined),
@@ -30,14 +29,9 @@ cz.mzk.authorities.verif.Authority = function(options) {
   this.id_ = options.id || "";
   /**
    * @private
-   * @type {!string}
+   * @type {!Object}
    */
-  this.type_ = options.type || "";
-  /**
-   * @private
-   * @type {!string}
-   */
-  this.address_ = options.address || "";
+  this.info_ = options.info || {};
   /**
    * @private
    * @type {?number}
@@ -108,34 +102,18 @@ cz.mzk.authorities.verif.Authority.prototype.setId = function(value) {
 
 /**
  * Getter method for type.
- * @return {!string}
+ * @return {!Object}
  */
-cz.mzk.authorities.verif.Authority.prototype.getType = function() {
-  return this.type_;
+cz.mzk.authorities.verif.Authority.prototype.getInfo = function() {
+  return this.info_;
 }
 
 /**
  * Setter method for type.
- * @param {!string} value
+ * @param {!Object} value
  */
-cz.mzk.authorities.verif.Authority.prototype.setType = function(value) {
-  this.type_ = value;
-}
-
-/**
- * Getter method for address.
- * @return {!string}
- */
-cz.mzk.authorities.verif.Authority.prototype.getAddress = function() {
-  return this.address_;
-}
-
-/**
- * Setter method for address.
- * @param {!string} value
- */
-cz.mzk.authorities.verif.Authority.prototype.setAddress = function(value) {
-  this.address_ = value;
+cz.mzk.authorities.verif.Authority.prototype.setInfo = function(value) {
+  this.info_ = value;
 }
 
 /**
