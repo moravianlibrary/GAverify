@@ -29,6 +29,10 @@ html, body {
   background-color: #F2F2F2;
   overflow-y: scroll;
   overflow-x: hidden;
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  -o-user-select: none;
 }
 #info {
   width: 220px;
