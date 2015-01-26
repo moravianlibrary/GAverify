@@ -5,6 +5,7 @@ import sys, os
 import uuid
 import urlparse, json
 import sqlite3
+import base64
 import logging
 from flup.server.fcgi import WSGIServer
 from contextlib import closing
@@ -105,16 +106,16 @@ class Database:
         with closing(self._conn.cursor()) as cur:
             cur.execute("UPDATE `authorities` SET `locked` = 0, uuid = NULL WHERE uuid = ?", [uuid])
 
-    def verify_authority(self, uuid, west, east, north, south):
+    def verify_authority(self, user, uuid, west, east, north, south):
         with closing(self._conn.cursor()) as cur:
             update_st = "\
                 UPDATE `authorities`\
                 SET `verified_west` = ?, `verified_east` = ?,\
                     `verified_north` = ?, `verified_south` = ?,\
-                    `level` = 0, `locked` = 0, `uuid` = NULL\
+                    `level` = 0, `locked` = 0, `uuid` = NULL, `user` = ?\
                 WHERE `uuid` = ?\
             "
-            cur.execute(update_st, [west, east, north, south, uuid]);
+            cur.execute(update_st, [west, east, north, south, user, uuid]);
 
     def get_levels(self, category):
         with closing(self._conn.cursor()) as cur:
@@ -199,6 +200,7 @@ def send_authority_response(start_response, params, levels):
 def app(environ, start_response):
     logging.basicConfig(filename='/var/log/auth_verif/backend.log')
     try:
+        user = base64.b64decode(environ['HTTP_AUTHORIZATION'].split(' ')[1]).split(':')[0]
         params = parse_params(['action'], environ)
         body = get_request_body(environ)
 
@@ -246,7 +248,7 @@ def app(environ, start_response):
                         raise ClientException('Verified Authority is not specified.')
                     if not uuid:
                         raise ClientException('You must define uuid.')
-                    db.verify_authority(uuid, west, east, north, south)
+                    db.verify_authority(user, uuid, west, east, north, south)
                     return send_authority_response(
                         start_response,
                         db.get_authority(category, level),
