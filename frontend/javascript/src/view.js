@@ -243,9 +243,11 @@ cz.mzk.authorities.verif.View = function(mapElement, mapLayerSwitcherElement,
     this_.map_.moveTo(this_.authority_);
   });
   goog.events.listen(this.verifiedButton_, goog.ui.Component.EventType.ACTION, function(e) {
-    this_.dispatchEvent({
-      type: cz.mzk.authorities.verif.View.EventType.VERIFIED_ACTION
-    });
+    if (window.confirm('Skutečně chcete autoritu uložit a přejít na další?')) {
+      this_.dispatchEvent({
+        type: cz.mzk.authorities.verif.View.EventType.VERIFIED_ACTION
+      });
+    }
   });
   goog.events.listen(this.skipButton_, goog.ui.Component.EventType.ACTION, function(e) {
     this_.dispatchEvent({
