@@ -16,8 +16,8 @@ cz.mzk.authorities.verif.main = function() {
   // Init logger
   goog.debug.Console.autoInstall();
 
-  //var authorityManager = new cz.mzk.authorities.verif.AuthorityManager('http://195.113.155.123/cgi-bin/auth_verif.fcgi');
-  var authorityManager = new cz.mzk.authorities.verif.AuthorityManager('http://devel.auth.verif.mzk.cz/backend');
+  var authorityManager = new cz.mzk.authorities.verif.AuthorityManager('http://verifikace.mzk.cz/backend');
+  //var authorityManager = new cz.mzk.authorities.verif.AuthorityManager('http://devel.auth.verif.mzk.cz/backend');
   var view = new cz.mzk.authorities.verif.View(
       goog.dom.getElement('map-canvas'),
       goog.dom.getElement('map-layer-switcher'),
